@@ -1,0 +1,24 @@
+[
+  {
+    "id": "whatsapp_personal",
+    "name": "Personal WhatsApp Line",
+    "phoneNumber": "+1234567890",
+    "phoneNumberId": "100234567890123",
+    "apiToken": "EAAxxxxxxxxxxxxxxxxxxxxxxx",
+    "verifyToken": "openclaw_verify_personal_token_secret",
+    "allowedPhoneNumbers": ["+1234567890"],
+    "enabled": true,
+    "description": "Direct personal WhatsApp assistant line."
+  },
+  {
+    "id": "whatsapp_business",
+    "name": "Business Support & Sales WhatsApp",
+    "phoneNumber": "+1987654321",
+    "phoneNumberId": "200987654321098",
+    "apiToken": "EAAyyyyyyyyyyyyyyyyyyyyyyy",
+    "verifyToken": "openclaw_verify_business_token_secret",
+    "allowedPhoneNumbers": ["*"],
+    "enabled": true,
+    "description": "Company inbound customer and sales WhatsApp channel."
+  }
+]

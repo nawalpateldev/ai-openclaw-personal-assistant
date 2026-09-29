@@ -29,21 +29,27 @@ A shared platform substrate supports all four layers: configuration and secrets,
 
 ## Layer responsibilities
 
-### 1. Channels
+### 1. Channels (Multi-Account & Multi-Number Dynamic Ingress)
 
-**Components:** WhatsApp, Telegram, Slack, Discord, iMessage, CLI, and Nodes (paired devices or device-side clients).
+**Components:** 
+- **WhatsApp:** Multi-number support (e.g., Personal, Business Support, Sales lines).
+- **Telegram:** Multi-bot / Multi-account support (e.g., Personal Assistant Bot, Sales Lead Bot, Support Bot).
+- **Web Dashboard:** Password-protected, brute-force lockout, and self-hosted SVG CAPTCHA.
+- **Local CLI:** Interactive streaming terminal interface.
+- **Email:** Dynamic multi-inbox (10+ accounts across personal, business, sales, billing, support).
+- **Slack, Discord, iMessage, and Nodes:** Extensible companion and headless nodes.
 
-**Owns:** Transport connections, platform-specific authentication, receiving/sending messages, attachments, delivery receipts, and translating platform events into the common inbound/outbound contract.
+**Owns:** Transport connections, account/number-specific authentication, receiving/sending messages, attachments, delivery receipts, and translating platform events into the common inbound/outbound contract.
 
 **Must not own:** Agent prompts, model selection, tool policy, or conversation history rules. Channel SDK objects should not leak beyond the adapter boundary.
 
 ### 2. Channel and conversation services
 
-- **Channel adapters:** Convert provider events to and from the canonical message envelope. Normalize identities, timestamps, attachments, replies, and delivery errors.
-- **Session router:** Resolve an envelope to a stable session using configured account, peer, group, and routing rules. Enforce tenant and channel boundaries; do not infer identity from display names.
+- **Multi-account channel adapters:** Convert provider events to and from the canonical message envelope. Each adapter handles multiple registered accounts/numbers (e.g., `whatsapp_sales`, `whatsapp_support`, `telegram_personal`, `telegram_business`), preserving the specific target account ID alongside the sender ID.
+- **Session router:** Resolve an envelope to a stable session using the composite key `(channel, account_id, sender_id)`. Enforce strict tenant, account, and channel boundaries; separate business WhatsApp conversations from personal WhatsApp conversations automatically.
 - **Lane queue:** Preserve ordering for messages in the same session while allowing separate sessions to run concurrently. Apply bounded concurrency, backpressure, cancellation, retry policy, and dead-letter handling. Define what happens when a message arrives during an active run: queue it, steer the active run, or interrupt it, according to explicit session policy.
 - **Session state:** Persist the conversation transcript and run metadata under a stable session identity. Keep channel/account/peer/thread scoping explicit so unrelated conversations cannot share context accidentally.
-- **Auth and pairing:** Verify channel credentials and authorize users, groups, and Nodes. Pairing is an explicit trust grant with revocation and audit history, not just device discovery.
+- **Auth, pairing, and whitelist:** Verify channel credentials and authorize senders per account. Each WhatsApp number and Telegram bot maintains an explicit sender whitelist/pairing registry with revocation and audit history.
 - **Cron and heartbeat:** Produce scheduled or periodic trigger events that enter through the same router and queue as channel messages. Apply per-job identity, permissions, deduplication, and missed-run policy.
 
 **Owns:** Ingress validation, identity-to-session mapping, admission control, and trigger scheduling. It does not decide how the assistant reasons or which tools to call.
@@ -66,7 +72,7 @@ A shared platform substrate supports all four layers: configuration and secrets,
 - **Browser:** Browser automation or controlled web access using a dedicated session and explicit navigation/action policy.
 - **Skills (ClawHub):** Discoverable and versioned capability packages. Treat installed skill instructions and outputs as untrusted input; require provenance, permissions, and update controls.
 - **MCP:** Connect to configured MCP servers through a capability adapter. Validate server identity, tool schemas, permissions, and returned content.
-- **Email and calendar:** Separate read/write scopes, confirm consequential sends or edits when policy requires, and retain provider audit IDs.
+- **Email and calendar:** Separate read/write scopes and retain provider audit IDs. Email and SMS are draft-only: the assistant may prepare a draft, but must never send it autonomously. Sending requires a human to review and explicitly approve the exact recipients, account, and content. Any change after approval invalidates that approval. Do not expose an autonomous send operation to the model.
 - **Subagents:** Expose child-agent work as a capability to the dispatcher, with a bounded task, inherited or narrower permissions, resource limits, and a result contract. The child run uses the Layer 3 runtime; Layer 4 is its invocation surface, not a second orchestration engine.
 
 **Owns:** Provider-specific execution and capability metadata. Integrations do not bypass Layer 3 dispatch or Layer 2 identity/session authorization.
@@ -81,6 +87,7 @@ Define versioned interfaces early so channels and integrations can evolve indepe
 - **Run-step event:** `run_id`, monotonic step ID, step kind, state transition, bounded input/output references, timing, and cancellation/steering status. Sensitive content is excluded or redacted from telemetry by default.
 - **Capability call/result:** Capability and operation IDs, validated input, authorization context, deadline/cancellation, structured result, and normalized error. Do not return unbounded raw provider payloads to the model.
 - **Outbound response:** Session and destination, content/attachments, reply metadata, idempotency key, and delivery status.
+- **Outbound approval:** Approval is a separate, authenticated human action bound to the exact draft, recipients, sending account, and content. Expired, edited, or mismatched approvals fail closed; record the approver and decision for audit.
 
 Keep transport-specific metadata in an opaque, size-limited field. Persist only fields needed for routing, audit, and replay, with defined retention.
 
@@ -95,7 +102,8 @@ Keep transport-specific metadata in an opaque, size-limited field. Persist only 
 
 ## Cross-cutting requirements
 
-- **Security:** Treat inbound text, attachments, skill content, MCP results, and browser content as untrusted. Use least-privilege capability grants, secret redaction, explicit pairing/revocation, and confirmation policies for consequential actions.
+- **Security and abuse resistance:** Treat all content from email, SMS, chat, attachments, links, web pages, browser results, skills, MCP servers, and subagents as untrusted data, never as system instructions or authorization. Delimit and label this content during prompt assembly; do not let it alter policy, grant tools, reveal secrets, approve actions, or change recipients. Apply layered phishing and malicious-content defenses: preserve sender/authentication signals, flag suspicious requests and links, isolate attachment parsing with type/size limits and malware scanning where available, and use a restricted browser/network boundary with SSRF protections. Detection is advisory and not a substitute for authorization. Enforce least-privilege capability grants, secret redaction, explicit pairing/revocation, rate limits, and auditable policy checks. No system can guarantee that it is impossible to hack; controls must fail closed and be tested against realistic attack attempts.
+- **Outbound safety:** Email and SMS must remain draft-only until an authenticated human reviews and approves the exact recipient list, sending account, and message body in a trusted review surface. The model and untrusted inbound content cannot approve, trigger, or modify that approval. No direct model-callable send tool, automatic send fallback, or retry may bypass review. A modified or expired draft requires a new approval.
 - **Isolation:** Apply process/container or equivalent isolation for shell and filesystem capabilities. Set execution deadlines, output limits, and resource budgets for tools and subagents.
 - **Reliability:** Use durable queues where message loss is unacceptable, idempotency for retries, per-session ordering, and explicit behavior for reconnects, rate limits, and provider outages.
 - **Privacy:** Define separate retention and deletion rules for transcripts, summaries, durable memory, tool inputs/results, and audit records. Make export/deletion behavior consistent across channels and prevent cross-session memory leakage.
@@ -119,7 +127,7 @@ The plan can proceed with these as explicit defaults, but implementation needs o
 - **State and queue:** Choose the durable database and queue based on deployment scale and recovery requirements. Is a single-node deployment the initial target?
 - **Model providers:** Choose the initial provider and whether local models must be supported in the first vertical slice.
 - **Execution isolation:** Decide whether shell/browser tools run in containers, a dedicated worker, or are disabled until an isolation boundary is available.
-- **Approval policy:** Define which actions require user confirmation, especially email/calendar writes, shell commands, and external messages.
+- **Approval policy:** Email and SMS sends always require explicit human review and approval of the exact draft and recipients. Define confirmation requirements for other consequential actions, including calendar writes and shell commands.
 - **Channel scope:** Confirm which channel is the first vertical slice and whether Nodes mean paired companion devices, headless workers, or both.
 
 ## Initial acceptance criteria
@@ -130,5 +138,7 @@ The plan can proceed with these as explicit defaults, but implementation needs o
 - An active run can be queued behind, steered, interrupted, or cancelled only according to explicit policy, and its step history records the outcome.
 - Unauthorized senders and unpaired Nodes cannot invoke agent runs or capabilities.
 - Every capability call is policy-checked, bounded by time/output/resource limits, and auditable without exposing secrets.
+- Malicious or phishing email/message content, attachments, links, and prompt-injection attempts cannot grant capabilities, override policy, expose secrets, or approve outbound actions; cover these cases with adversarial tests.
+- Email and SMS actions create drafts only. Tests prove there is no autonomous send path, approval is authenticated and bound to the exact account/recipients/content, and edits, expiry, retries, and forged approvals cannot bypass review.
 - Scheduled triggers use the same authorization and execution path as inbound messages.
 - A failed delivery or retried event cannot silently duplicate a consequential action.

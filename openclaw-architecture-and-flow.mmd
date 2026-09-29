@@ -12,9 +12,13 @@ flowchart LR
     subgraph L2["Layer 2: Channel and Conversation Services"]
         ADAPTER[Channel adapters<br/>provider events to canonical envelopes]
         AUTH[Ingress authentication<br/>authorization and pairing]
+        GUARD[Untrusted-content boundary<br/>phishing and injection defenses<br/>attachments and links isolated]
         ROUTER[Session router]
         QUEUE[Durable lane queue<br/>per-session ordering<br/>queue new messages during active run]
         SCHED[Cron and heartbeat triggers]
+        OUTPOL[Outbound policy<br/>route by destination and action]
+        DRAFT[Email/SMS draft only<br/>no autonomous send]
+        REVIEW[Human review<br/>approve exact recipients and content]
         OUTBOX[Outbound delivery queue<br/>deduplication and delivery status]
     end
 
@@ -35,7 +39,7 @@ flowchart LR
         BROWSER[Browser<br/>isolated session]
         SKILLS[Skills / ClawHub]
         MCP[MCP servers]
-        MAIL[Email and calendar<br/>confirmation for writes]
+        MAIL[Email and calendar<br/>draft-only email/SMS capability]
         WORKER[Worker Nodes<br/>remote scoped execution]
         SUBAGENT[Subagent invocation<br/>bounded child run]
     end
@@ -56,7 +60,7 @@ flowchart LR
     CLI --> ADAPTER
     COMP --> ADAPTER
 
-    ADAPTER --> AUTH --> ROUTER --> QUEUE
+    ADAPTER --> AUTH --> GUARD --> ROUTER --> QUEUE
     SCHED --> ROUTER
     QUEUE --> RUN --> PROMPT --> MODEL --> LOOP
     LOOP -- "tool call" --> DISPATCH --> REG
@@ -76,7 +80,10 @@ flowchart LR
     SUBAGENT --> DISPATCH
     DISPATCH --> MODEL
     LOOP -- "context limit" --> COMPACT --> PROMPT
-    LOOP -- "final answer" --> RESPONSE --> OUTBOX --> ADAPTER
+    LOOP -- "final answer" --> RESPONSE --> OUTPOL
+    OUTPOL -- "other channels" --> OUTBOX
+    OUTPOL -- "email/SMS" --> DRAFT --> REVIEW --> OUTBOX
+    MAIL --> DRAFT
 
     RUN -. persist run state .-> DB
     QUEUE -. deduplicate and persist .-> DB
@@ -85,6 +92,8 @@ flowchart LR
     RESPONSE -. permitted memory updates .-> MEMORY
     AUTH -. identity and pairing policy .-> POLICY
     DISPATCH -. capability authorization .-> POLICY
+    GUARD -. untrusted input policy .-> POLICY
+    REVIEW -. approval record bound to draft .-> DB
     REG -. credentials .-> SECRETS
     EVENTS -. trace run and steps .-> OBS
     RUN -. run lifecycle .-> EVENTS
@@ -99,7 +108,7 @@ flowchart LR
     classDef platform fill:#f0eefb,stroke:#6756a3,color:#261c49
 
     class WA,TG,SL,DC,IM,CLI,COMP channel
-    class ADAPTER,AUTH,ROUTER,QUEUE,SCHED,OUTBOX service
+    class ADAPTER,AUTH,GUARD,ROUTER,QUEUE,SCHED,OUTPOL,DRAFT,REVIEW,OUTBOX service
     class RUN,PROMPT,MODEL,LOOP,DISPATCH,COMPACT,EVENTS,RESPONSE runtime
     class REG,SHELL,BROWSER,SKILLS,MCP,MAIL,WORKER,SUBAGENT capability
     class DB,MEMORY,POLICY,SECRETS,OBS platform

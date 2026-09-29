@@ -1,0 +1,29 @@
+[
+  {
+    "id": "telegram_personal",
+    "name": "Personal Assistant Bot",
+    "botUsername": "MyPersonalClawBot",
+    "botToken": "123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ",
+    "allowedUserIds": ["123456789"],
+    "enabled": true,
+    "description": "Private assistant for personal tasks, notes, calendar, and email."
+  },
+  {
+    "id": "telegram_sales",
+    "name": "Sales Inquiries Bot",
+    "botUsername": "CompanySalesBot",
+    "botToken": "987654321:XYZabcDeFGHiJklMNopQRSTuvwx",
+    "allowedUserIds": ["*"],
+    "enabled": true,
+    "description": "Automated sales qualification and client meeting scheduling."
+  },
+  {
+    "id": "telegram_support",
+    "name": "Customer Support Bot",
+    "botUsername": "CustomerSupportClawBot",
+    "botToken": "555555555:LMNopqRSTuvwXYZabc123456789",
+    "allowedUserIds": ["*"],
+    "enabled": false,
+    "description": "Tier 1 customer support and ticket ingestion."
+  }
+]

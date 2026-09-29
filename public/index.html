@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw • Autonomous Personal & Business Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0a0c10;
+      --bg-surface: #12161f;
+      --bg-card: rgba(22, 28, 40, 0.7);
+      --bg-card-hover: rgba(28, 36, 52, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.3);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.3);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.08) 0%, transparent 45%);
+    }
+
+    /* -------------------------------------------------------------
+       Typography & Utility
+    ------------------------------------------------------------- */
+    h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
+    .mono { font-family: var(--font-mono); }
+    .glass {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: var(--font-sans);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-subtle);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .btn-success {
+      background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--success-glow);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* -------------------------------------------------------------
+       Security Login Gate Screen
+    ------------------------------------------------------------- */
+    #auth-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      padding: 36px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 80px rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
+    }
+    .brand-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .brand-icon {
+      font-size: 2.8rem;
+      display: inline-block;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 16px rgba(99, 102, 241, 0.6));
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(10, 12, 16, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    .captcha-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .captcha-svg-box {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .captcha-refresh-btn {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .alert-banner {
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert-error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    /* -------------------------------------------------------------
+       Main Dashboard Shell
+    ------------------------------------------------------------- */
+    #dashboard-screen {
+      display: none;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+    .navbar {
+      height: 70px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(12px);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-brand span {
+      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .provider-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+    }
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      padding: 16px 28px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      color: #fff;
+      border-bottom-color: var(--primary);
+    }
+    .badge-count {
+      padding: 2px 7px;
+      background: var(--danger);
+      color: #fff;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    /* -------------------------------------------------------------
+       Tab Views & Layout
+    ------------------------------------------------------------- */
+    .tab-content {
+      flex: 1;
+      padding: 28px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Chat View */
+    .chat-container {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      height: calc(100vh - 200px);
+      gap: 16px;
+    }
+    .chat-messages {
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .message-card {
+      max-width: 80%;
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+    .msg-user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-assistant {
+      align-self: flex-start;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-bottom-left-radius: 4px;
+    }
+    .msg-meta {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chat-input-bar {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 14px 18px;
+      background: rgba(10, 12, 16, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    /* Email Manager View */
+    .email-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      height: calc(100vh - 200px);
+    }
+    .account-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+    .account-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .account-card:hover, .account-card.active {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+    .account-card-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .account-card-email {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .email-inbox-panel {
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .inbox-item {
+      padding: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .inbox-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Approvals View */
+    .approvals-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .approval-card {
+      padding: 20px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.05);
+      border-radius: var(--radius-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .approval-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Gateway & Models View */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .provider-card {
+      padding: 22px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. SECURITY & AUTHENTICATION GATE
+  ========================================================================= -->
+  <div id="auth-screen">
+    <div class="login-card glass">
+      <div class="brand-header">
+        <div class="brand-icon">🦞</div>
+        <h2>OpenClaw Gateway</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Smart • Secure • Robust Autonomous Assistant</p>
+      </div>
+
+      <div id="login-alert" class="alert-banner alert-error"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="dashboard-password">Master Password</label>
+          <input type="password" id="dashboard-password" class="input-field" placeholder="Enter dashboard password" required autocomplete="current-password">
+        </div>
+
+        <div class="form-group">
+          <label>Security Verification (CAPTCHA)</label>
+          <div class="captcha-container">
+            <div id="captcha-box" class="captcha-svg-box" title="Click to refresh CAPTCHA">
+              <!-- SVG will be rendered dynamically -->
+            </div>
+            <button type="button" id="refresh-captcha-btn" class="captcha-refresh-btn">🔄 Refresh</button>
+          </div>
+          <input type="text" id="captcha-answer" class="input-field mono" placeholder="Enter CAPTCHA code" required autocomplete="off">
+          <input type="hidden" id="captcha-id">
+        </div>
+
+        <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; padding: 12px; margin-top: 8px;">
+          Authenticate Session ➔
+        </button>
+
+        <p style="text-align: center; color: var(--text-dim); font-size: 0.75rem; margin-top: 16px;">
+          🛡️ Brute-force protection active • Max 5 attempts
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       2. AUTHENTICATED DASHBOARD CONTROL CENTER
+  ========================================================================= -->
+  <div id="dashboard-screen">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <span style="font-size: 1.5rem;">🦞</span>
+        <span>OpenClaw</span>
+      </div>
+
+      <div class="nav-actions">
+        <div class="provider-pill" id="active-llm-pill">
+          <div class="status-dot"></div>
+          <span id="active-llm-label">Gemini 2.5 Flash</span>
+        </div>
+        <button id="logout-btn" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem;">
+          Sign Out
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="tab-chat">
+        💬 AI Assistant
+      </button>
+      <button class="tab-btn" data-tab="tab-email">
+        ✉️ Inboxes (<span id="inbox-count-badge">0</span>)
+      </button>
+      <button class="tab-btn" data-tab="tab-approvals">
+        🛡️ Approvals <span id="approvals-badge" class="badge-count" style="display: none;">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-gateway">
+        ⚡ Multi-Model Gateway
+      </button>
+      <button class="tab-btn" data-tab="tab-calendar">
+        📅 Calendar
+      </button>
+    </nav>
+
+    <!-- Tab Contents -->
+    <main class="tab-content">
+      <!-- 1. AI Chat Tab -->
+      <section id="tab-chat" class="tab-pane active">
+        <div class="chat-container glass">
+          <div class="chat-messages" id="chat-messages-container">
+            <div class="message-card msg-assistant">
+              <strong>OpenClaw Assistant</strong><br>
+              Hello! I am OpenClaw. I have connected to your resilient multi-model gateway, dynamic multi-account email manager, and calendar. How can I assist you with personal or business automation today?
+              <div class="msg-meta">
+                <span>🟢 Protected Session</span>
+                <span>•</span>
+                <span>Ready for instructions</span>
+              </div>
+            </div>
+          </div>
+
+          <form id="chat-form" class="chat-input-bar">
+            <input type="text" id="chat-input-text" class="chat-input" placeholder="Ask OpenClaw anything (e.g., 'Check recent emails in personal inbox' or 'Send email to client@example.com')..." required>
+            <button type="submit" class="btn btn-primary">Send ➔</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- 2. Dynamic Email Inboxes Tab (10+ Accounts) -->
+      <section id="tab-email" class="tab-pane">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <h2>Dynamic Multi-Account Email Manager</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Supports 10+ accounts across Personal, Business, Sales, Support, and custom domains.</p>
+          </div>
+          <button id="add-account-btn" class="btn btn-primary" onclick="alert('Add Account modal: configured dynamically via config/email-accounts.json or API')">+ Add Email Account</button>
+        </div>
+
+        <div class="email-grid">
+          <!-- Accounts Sidebar -->
+          <div class="glass" style="padding: 16px; display: flex; flex-direction: column;">
+            <h4 style="margin-bottom: 12px; color: var(--text-muted);">Configured Inboxes</h4>
+            <div class="account-list" id="email-accounts-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Inbox Message List & Viewer -->
+          <div class="glass email-inbox-panel" id="email-inbox-content">
+            <h3 id="current-account-title">Select an inbox to view messages</h3>
+            <div id="email-messages-list" style="margin-top: 16px;">
+              <p style="color: var(--text-dim);">No account selected.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Approvals Tab (HITL Tier-2 Safety) -->
+      <section id="tab-approvals" class="tab-pane">
+        <div style="margin-bottom: 20px;">
+          <h2>Human-in-the-Loop (HITL) Approvals Center</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Consequential actions (such as sending external emails or altering critical events) require your explicit confirmation.</p>
+        </div>
+
+        <div class="approvals-list" id="approvals-list-container">
+          <div class="glass" style="padding: 30px; text-align: center; color: var(--text-dim);">
+            ✅ No pending approval requests. All systems clear.
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Multi-Model Gateway Tab -->
+      <section id="tab-gateway" class="tab-pane">
+        <div style="margin-bottom: 20px;">
+          <h2>Multi-Provider Resilient LLM Gateway</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Primary model executes with automatic fallback cascade on rate limit (429) or outage.</p>
+        </div>
+
+        <div class="provider-grid" id="providers-grid-container">
+          <!-- Dynamically populated from /api/status -->
+        </div>
+      </section>
+
+      <!-- 5. Calendar Tab -->
+      <section id="tab-calendar" class="tab-pane">
+        <div style="margin-bottom: 20px;">
+          <h2>Calendar & Schedule Conflict Detector</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Manage meetings, detect double-bookings, and review upcoming milestones.</p>
+        </div>
+
+        <div class="glass" style="padding: 24px;">
+          <div id="calendar-events-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- =========================================================================
+       3. CLIENT APPLICATION LOGIC
+  ========================================================================= -->
+  <script>
+    let currentAuthToken = localStorage.getItem('openclaw_token') || '';
+    let currentSelectedAccountId = '';
+
+    // Elements
+    const authScreen = document.getElementById('auth-screen');
+    const dashboardScreen = document.getElementById('dashboard-screen');
+    const loginForm = document.getElementById('login-form');
+    const loginAlert = document.getElementById('login-alert');
+    const captchaBox = document.getElementById('captcha-box');
+    const captchaIdInput = document.getElementById('captcha-id');
+    const refreshCaptchaBtn = document.getElementById('refresh-captcha-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // 1. Load Captcha
+    async function loadCaptcha() {
+      try {
+        const res = await fetch('/api/auth/captcha');
+        const data = await res.json();
+        captchaBox.innerHTML = data.svg;
+        captchaIdInput.value = data.challengeId;
+      } catch (err) {
+        console.error('Failed to load CAPTCHA:', err);
+      }
+    }
+
+    refreshCaptchaBtn.addEventListener('click', loadCaptcha);
+    captchaBox.addEventListener('click', loadCaptcha);
+
+    // 2. Authentication Check
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: currentAuthToken ? { 'Authorization': `Bearer ${currentAuthToken}` } : {}
+        });
+        if (res.ok) {
+          showDashboard();
+        } else {
+          showLogin();
+        }
+      } catch {
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      authScreen.style.display = 'flex';
+      dashboardScreen.style.display = 'none';
+      loadCaptcha();
+    }
+
+    function showDashboard() {
+      authScreen.style.display = 'none';
+      dashboardScreen.style.display = 'flex';
+      loadDashboardData();
+      initWebSocket();
+    }
+
+    // 3. Login Form Submit
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginAlert.style.display = 'none';
+
+      const password = document.getElementById('dashboard-password').value;
+      const captchaAnswer = document.getElementById('captcha-answer').value;
+      const captchaId = captchaIdInput.value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password, captchaId, captchaAnswer })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentAuthToken = data.token;
+          localStorage.setItem('openclaw_token', data.token);
+          showDashboard();
+        } else {
+          loginAlert.textContent = data.message || 'Login failed. Please verify credentials.';
+          loginAlert.style.display = 'block';
+          loadCaptcha();
+          document.getElementById('captcha-answer').value = '';
+        }
+      } catch (err) {
+        loginAlert.textContent = 'Server connection error. Please try again.';
+        loginAlert.style.display = 'block';
+      }
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      localStorage.removeItem('openclaw_token');
+      currentAuthToken = '';
+      showLogin();
+    });
+
+    // 4. Tab Navigation
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const tabId = btn.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+
+    // 5. Dashboard Data Loading
+    async function apiFetch(url, options = {}) {
+      const headers = options.headers || {};
+      if (currentAuthToken) {
+        headers['Authorization'] = `Bearer ${currentAuthToken}`;
+      }
+      return fetch(url, { ...options, headers });
+    }
+
+    async function loadDashboardData() {
+      loadStatus();
+      loadEmailAccounts();
+      loadApprovals();
+      loadCalendarEvents();
+    }
+
+    // Status & LLM Providers
+    async function loadStatus() {
+      try {
+        const res = await apiFetch('/api/status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update providers grid
+        const grid = document.getElementById('providers-grid-container');
+        grid.innerHTML = data.providers.map(p => `
+          <div class="provider-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h3>${p.provider.toUpperCase()}</h3>
+              <span class="provider-pill" style="${p.healthy ? '' : 'background: rgba(239,68,68,0.1); color: #f87171; border-color: rgba(239,68,68,0.3);'}">
+                <div class="status-dot" style="${p.healthy ? '' : 'background: #ef4444; box-shadow: 0 0 10px #ef4444;'}"></div>
+                ${p.healthy ? 'Healthy' : (p.configured ? 'Error / Degraded' : 'Not Configured')}
+              </span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              <strong>Model:</strong> <span class="mono">${p.model}</span><br>
+              <strong>Configured:</strong> ${p.configured ? 'Yes' : 'No'}<br>
+              <strong>Failures:</strong> ${p.consecutiveFailures}
+            </div>
+            ${p.lastError ? `<div style="font-size: 0.75rem; color: #fca5a5;">${p.lastError}</div>` : ''}
+            <div style="display: flex; gap: 8px; margin-top: auto;">
+              <button class="btn btn-secondary" style="flex: 1; font-size: 0.8rem;" onclick="setPrimaryProvider('${p.provider}')">Set Primary</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load status:', err);
+      }
+    }
+
+    window.setPrimaryProvider = async function(provider) {
+      await apiFetch('/api/gateway/provider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, setPrimary: true })
+      });
+      loadStatus();
+    };
+
+    // Email Accounts
+    async function loadEmailAccounts() {
+      try {
+        const res = await apiFetch('/api/email/accounts');
+        if (!res.ok) return;
+        const accounts = await res.json();
+        document.getElementById('inbox-count-badge').textContent = accounts.length;
+
+        const list = document.getElementById('email-accounts-list');
+        list.innerHTML = accounts.map(acc => `
+          <div class="account-card ${acc.id === currentSelectedAccountId ? 'active' : ''}" onclick="selectAccount('${acc.id}', '${acc.name}')">
+            <div class="account-card-title">
+              <span>${acc.name}</span>
+              <span style="font-size: 0.7rem; color: var(--accent);">${acc.id}</span>
+            </div>
+            <div class="account-card-email">${acc.email}</div>
+          </div>
+        `).join('');
+
+        if (accounts.length > 0 && !currentSelectedAccountId) {
+          selectAccount(accounts[0].id, accounts[0].name);
+        }
+      } catch (err) {
+        console.error('Failed to load email accounts:', err);
+      }
+    }
+
+    window.selectAccount = async function(id, name) {
+      currentSelectedAccountId = id;
+      document.querySelectorAll('.account-card').forEach(c => c.classList.remove('active'));
+      document.getElementById('current-account-title').textContent = `${name} Inbox`;
+      const messagesContainer = document.getElementById('email-messages-list');
+      messagesContainer.innerHTML = '<p style="color: var(--text-dim);">Connecting to IMAP...</p>';
+
+      try {
+        const res = await apiFetch(`/api/email/accounts/${id}/messages?limit=10`);
+        const messages = await res.json();
+        if (messages.length === 0) {
+          messagesContainer.innerHTML = '<p style="color: var(--text-dim);">Inbox is empty or no messages fetched.</p>';
+          return;
+        }
+
+        messagesContainer.innerHTML = messages.map(m => `
+          <div class="inbox-item" onclick="alert('Viewing email UID: ${m.uid}\\nSubject: ${m.subject}\\nFrom: ${m.from}')">
+            <div>
+              <strong>${m.from}</strong>
+              <div style="font-size: 0.9rem; color: var(--text-main); margin-top: 2px;">${m.subject}</div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); text-align: right;">
+              ${new Date(m.date).toLocaleDateString()}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        messagesContainer.innerHTML = `<p style="color: #fca5a5;">Connection test or fetch failed: ${err.message || 'Credentials not active yet'}</p>`;
+      }
+    };
+
+    // Approvals (HITL)
+    async function loadApprovals() {
+      try {
+        const res = await apiFetch('/api/approvals');
+        if (!res.ok) return;
+        const data = await res.json();
+        const pending = data.pending || [];
+
+        const badge = document.getElementById('approvals-badge');
+        if (pending.length > 0) {
+          badge.textContent = pending.length;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+
+        const container = document.getElementById('approvals-list-container');
+        if (pending.length === 0) {
+          container.innerHTML = `<div class="glass" style="padding: 30px; text-align: center; color: var(--text-dim);">
+            ✅ No pending approval requests. All systems clear.
+          </div>`;
+          return;
+        }
+
+        container.innerHTML = pending.map(a => `
+          <div class="approval-card">
+            <div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="mono" style="font-size: 0.8rem; color: var(--warning); font-weight: 700;">[${a.id}]</span>
+                <h4>${a.title}</h4>
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">${a.description}</p>
+            </div>
+            <div class="approval-actions">
+              <button class="btn btn-success" onclick="approveAction('${a.id}')">Approve & Send</button>
+              <button class="btn btn-danger" onclick="rejectAction('${a.id}')">Reject</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load approvals:', err);
+      }
+    }
+
+    window.approveAction = async function(id) {
+      const res = await apiFetch(`/api/approvals/${id}/approve`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert('Action approved and executed successfully!');
+      } else {
+        alert('Execution error: ' + data.error);
+      }
+      loadApprovals();
+    };
+
+    window.rejectAction = async function(id) {
+      await apiFetch(`/api/approvals/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Rejected from Web Dashboard' })
+      });
+      loadApprovals();
+    };
+
+    // Calendar
+    async function loadCalendarEvents() {
+      try {
+        const res = await apiFetch('/api/calendar/events');
+        if (!res.ok) return;
+        const events = await res.json();
+        const list = document.getElementById('calendar-events-list');
+        list.innerHTML = events.map(e => `
+          <div style="padding: 12px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between;">
+            <div>
+              <strong>${e.title}</strong>
+              <div style="font-size: 0.8rem; color: var(--text-dim);">${e.description || ''}</div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--accent); text-align: right;">
+              ${new Date(e.startTime).toLocaleString()}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load calendar events:', err);
+      }
+    }
+
+    // Chat
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input-text');
+    const chatMessagesContainer = document.getElementById('chat-messages-container');
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      // Add user message to UI
+      const userCard = document.createElement('div');
+      userCard.className = 'message-card msg-user';
+      userCard.textContent = text;
+      chatMessagesContainer.appendChild(userCard);
+      chatInput.value = '';
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+      // Add thinking placeholder
+      const assistantCard = document.createElement('div');
+      assistantCard.className = 'message-card msg-assistant';
+      assistantCard.innerHTML = '<em>OpenClaw is thinking...</em>';
+      chatMessagesContainer.appendChild(assistantCard);
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+      try {
+        const res = await apiFetch('/api/agent/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        assistantCard.innerHTML = `
+          <strong>OpenClaw Assistant</strong><br>
+          ${data.response.replace(/\\n/g, '<br>')}
+          <div class="msg-meta">
+            <span>Provider: ${data.providerUsed?.toUpperCase()}</span>
+            <span>•</span>
+            <span>Model: ${data.modelUsed}</span>
+          </div>
+        `;
+        if (data.approvalRequired) {
+          loadApprovals();
+        }
+      } catch (err) {
+        assistantCard.innerHTML = `<span style="color: #fca5a5;">Error running agent: ${err.message}</span>`;
+      }
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    });
+
+    // WebSocket for live approval events
+    function initWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}`);
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'APPROVAL_CREATED') {
+            loadApprovals();
+          }
+        } catch {}
+      };
+    }
+
+    // Initial run
+    checkAuth();
+  </script>
+</body>
+</html>
