@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Environment and secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Persistent storage & logs
+data/
+*.sqlite
+*.sqlite3
+*.db
+logs/
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db

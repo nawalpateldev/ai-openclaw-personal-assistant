@@ -1,0 +1,105 @@
+flowchart LR
+    subgraph L1["Layer 1: Channels"]
+        WA[WhatsApp]
+        TG[Telegram]
+        SL[Slack]
+        DC[Discord]
+        IM[iMessage]
+        CLI[CLI]
+        COMP[Companion Nodes]
+    end
+
+    subgraph L2["Layer 2: Channel and Conversation Services"]
+        ADAPTER[Channel adapters<br/>provider events to canonical envelopes]
+        AUTH[Ingress authentication<br/>authorization and pairing]
+        ROUTER[Session router]
+        QUEUE[Durable lane queue<br/>per-session ordering<br/>queue new messages during active run]
+        SCHED[Cron and heartbeat triggers]
+        OUTBOX[Outbound delivery queue<br/>deduplication and delivery status]
+    end
+
+    subgraph L3["Layer 3: Agent Runtime"]
+        RUN[Create run and load context]
+        PROMPT[Prompt assembly<br/>session history and authorized memory]
+        MODEL[LLM call]
+        LOOP{Continue, call tool,<br/>or finalize?}
+        DISPATCH[Tool dispatch<br/>schema and authorization checks]
+        COMPACT[Compaction<br/>context management only]
+        EVENTS[Lifecycle and run-step events]
+        RESPONSE[Format final response]
+    end
+
+    subgraph L4["Layer 4: Capabilities and Integrations"]
+        REG[Capability registry and policy metadata]
+        SHELL[Shell and files<br/>sandboxed worker]
+        BROWSER[Browser<br/>isolated session]
+        SKILLS[Skills / ClawHub]
+        MCP[MCP servers]
+        MAIL[Email and calendar<br/>confirmation for writes]
+        WORKER[Worker Nodes<br/>remote scoped execution]
+        SUBAGENT[Subagent invocation<br/>bounded child run]
+    end
+
+    subgraph PLATFORM["Shared Platform Services"]
+        DB[(Durable store<br/>sessions, runs, inbox/outbox)]
+        MEMORY[(Durable memory<br/>scoped, attributable, deletable)]
+        POLICY[Configuration and policy]
+        SECRETS[Secret storage]
+        OBS[Telemetry and health]
+    end
+
+    WA --> ADAPTER
+    TG --> ADAPTER
+    SL --> ADAPTER
+    DC --> ADAPTER
+    IM --> ADAPTER
+    CLI --> ADAPTER
+    COMP --> ADAPTER
+
+    ADAPTER --> AUTH --> ROUTER --> QUEUE
+    SCHED --> ROUTER
+    QUEUE --> RUN --> PROMPT --> MODEL --> LOOP
+    LOOP -- "tool call" --> DISPATCH --> REG
+    REG --> SHELL
+    REG --> BROWSER
+    REG --> SKILLS
+    REG --> MCP
+    REG --> MAIL
+    REG --> WORKER
+    REG --> SUBAGENT
+    SHELL --> DISPATCH
+    BROWSER --> DISPATCH
+    SKILLS --> DISPATCH
+    MCP --> DISPATCH
+    MAIL --> DISPATCH
+    WORKER --> DISPATCH
+    SUBAGENT --> DISPATCH
+    DISPATCH --> MODEL
+    LOOP -- "context limit" --> COMPACT --> PROMPT
+    LOOP -- "final answer" --> RESPONSE --> OUTBOX --> ADAPTER
+
+    RUN -. persist run state .-> DB
+    QUEUE -. deduplicate and persist .-> DB
+    OUTBOX -. delivery state .-> DB
+    PROMPT -. retrieve authorized memory .-> MEMORY
+    RESPONSE -. permitted memory updates .-> MEMORY
+    AUTH -. identity and pairing policy .-> POLICY
+    DISPATCH -. capability authorization .-> POLICY
+    REG -. credentials .-> SECRETS
+    EVENTS -. trace run and steps .-> OBS
+    RUN -. run lifecycle .-> EVENTS
+    MODEL -. model step .-> EVENTS
+    DISPATCH -. tool step .-> EVENTS
+    COMPACT -. compaction event .-> EVENTS
+
+    classDef channel fill:#e8f4ff,stroke:#3478a8,color:#102a43
+    classDef service fill:#edf7ed,stroke:#4d8b52,color:#173b1a
+    classDef runtime fill:#fff4df,stroke:#b47a16,color:#4b3308
+    classDef capability fill:#fcebea,stroke:#b94a48,color:#4d1716
+    classDef platform fill:#f0eefb,stroke:#6756a3,color:#261c49
+
+    class WA,TG,SL,DC,IM,CLI,COMP channel
+    class ADAPTER,AUTH,ROUTER,QUEUE,SCHED,OUTBOX service
+    class RUN,PROMPT,MODEL,LOOP,DISPATCH,COMPACT,EVENTS,RESPONSE runtime
+    class REG,SHELL,BROWSER,SKILLS,MCP,MAIL,WORKER,SUBAGENT capability
+    class DB,MEMORY,POLICY,SECRETS,OBS platform
