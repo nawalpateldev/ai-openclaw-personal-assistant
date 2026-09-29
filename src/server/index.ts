@@ -13,6 +13,8 @@ import { EmailManager } from '../capabilities/email/email-manager.js';
 import { CalendarManager } from '../capabilities/calendar/calendar-manager.js';
 import { ApprovalGate } from '../capabilities/approval/approval-gate.js';
 import { AgentRuntime } from '../runtime/agent-loop.js';
+import { TelegramChannelManager } from '../channels/telegram/telegram-manager.js';
+import { WhatsAppChannelManager } from '../channels/whatsapp/whatsapp-manager.js';
 
 export function createServer() {
   const app = express();
@@ -25,6 +27,11 @@ export function createServer() {
   const calendarManager = new CalendarManager();
   const approvalGate = new ApprovalGate();
   const agentRuntime = new AgentRuntime(modelGateway, emailManager, calendarManager, approvalGate);
+
+  // Initialize Ingress Channels
+  const telegramManager = new TelegramChannelManager(agentRuntime, approvalGate);
+  telegramManager.startAll();
+  const whatsappManager = new WhatsAppChannelManager(agentRuntime, approvalGate);
 
   // Broadcast approval notifications to connected dashboard clients
   approvalGate.onApprovalCreated((approval) => {
@@ -121,7 +128,18 @@ export function createServer() {
       providers: modelGateway.getStatuses(),
       emailAccountsCount: emailManager.listAccounts().length,
       pendingApprovalsCount: approvalGate.listPending().length,
+      telegramBotsCount: telegramManager.listBots().length,
+      whatsappNumbersCount: whatsappManager.listNumbers().length,
     });
+  });
+
+  // Channel status routes
+  app.get('/api/channels/telegram/bots', requireAuth, (req, res) => {
+    res.json(telegramManager.listBots());
+  });
+
+  app.get('/api/channels/whatsapp/numbers', requireAuth, (req, res) => {
+    res.json(whatsappManager.listNumbers());
   });
 
   // Configure Provider state

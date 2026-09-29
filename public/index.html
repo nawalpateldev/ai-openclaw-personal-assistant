@@ -848,6 +848,9 @@
       try {
         const res = await apiFetch(`/api/email/accounts/${id}/messages?limit=10`);
         const messages = await res.json();
+        if (!res.ok || !Array.isArray(messages)) {
+          throw new Error(messages.error || 'Failed to connect to IMAP. Please ensure the email address and App Password are valid.');
+        }
         if (messages.length === 0) {
           messagesContainer.innerHTML = '<p style="color: var(--text-dim);">Inbox is empty or no messages fetched.</p>';
           return;
@@ -988,20 +991,24 @@
           body: JSON.stringify({ message: text })
         });
         const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || 'Server error running agent');
+        }
+        const respText = data.response || '(No response received from agent)';
         assistantCard.innerHTML = `
           <strong>OpenClaw Assistant</strong><br>
-          ${data.response.replace(/\\n/g, '<br>')}
+          ${respText.replace(/\n/g, '<br>')}
           <div class="msg-meta">
-            <span>Provider: ${data.providerUsed?.toUpperCase()}</span>
+            <span>Provider: ${(data.providerUsed || 'AI').toUpperCase()}</span>
             <span>•</span>
-            <span>Model: ${data.modelUsed}</span>
+            <span>Model: ${data.modelUsed || 'default'}</span>
           </div>
         `;
         if (data.approvalRequired) {
           loadApprovals();
         }
       } catch (err) {
-        assistantCard.innerHTML = `<span style="color: #fca5a5;">Error running agent: ${err.message}</span>`;
+        assistantCard.innerHTML = `<span style="color: #fca5a5;">⚠️ Error running agent: ${err.message}</span>`;
       }
       chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
     });

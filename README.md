@@ -78,8 +78,49 @@ Key configuration items:
 - `GEMINI_API_KEY`: Primary Google Gemini API key
 - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`: Optional fallback providers
 - `OLLAMA_BASE_URL`: Local Ollama instance (default: `http://127.0.0.1:11434`)
+- `OLLAMA_ENABLED`: Enable the local Ollama provider (defaults to `true` unless set to `false`)
+- `OLLAMA_MODEL`: Ollama model name (for example, `qwen2.5:0.5b`)
 - `DASHBOARD_PASSWORD`: Web dashboard master password
 - `EMAIL_ACCOUNTS`: Multi-account Gmail App Password configurations
+
+### Local Ollama with Qwen
+
+Install Ollama for your operating system from [ollama.com](https://ollama.com), then open PowerShell or a terminal. Pull the small Qwen model:
+
+```powershell
+ollama pull qwen2.5:0.5b
+```
+
+Check that Ollama is installed and the model is available:
+
+```powershell
+ollama --version
+ollama list
+```
+
+Check the local Ollama HTTP API. A successful response includes a `models` list:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:11434/api/tags
+```
+
+Chat directly with Qwen in Ollama's interactive CLI:
+
+```powershell
+ollama run qwen2.5:0.5b
+```
+
+Type a message at the prompt. Enter `/bye` to exit. This chats with Ollama directly; it is separate from OpenClaw's own CLI (`npm run cli`).
+
+To make OpenClaw use the local Ollama service, add these settings to `.env`:
+
+```dotenv
+OLLAMA_ENABLED=true
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:0.5b
+```
+
+Restart OpenClaw after changing `.env`. The current gateway tries configured Gemini, OpenAI, and Anthropic providers before Ollama, so Ollama is a fallback when those providers are unavailable; `ollama run` always chats directly with the selected local model. Small models can be less reliable at tool use. Keep authorization and security checks enforced by the application, not solely by model instructions.
 
 ### 4. Running OpenClaw
 - **Start Web Dashboard & API Server:**

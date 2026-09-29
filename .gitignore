@@ -6,6 +6,9 @@ build/
 # Environment and secrets
 .env
 .env.local
+config/email-accounts.json
+config/whatsapp-accounts.json
+config/telegram-accounts.json
 *.pem
 *.key
 
