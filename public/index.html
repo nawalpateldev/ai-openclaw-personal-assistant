@@ -775,12 +775,21 @@
         if (!res.ok) return;
         const data = await res.json();
 
+        // Update navbar active provider pill
+        const activeProvider = data.providers.find(p => p.provider === data.primaryProvider);
+        if (activeProvider) {
+          document.getElementById('active-llm-label').textContent = 
+            `${activeProvider.provider.toUpperCase()} (${activeProvider.model})`;
+        }
+
         // Update providers grid
         const grid = document.getElementById('providers-grid-container');
-        grid.innerHTML = data.providers.map(p => `
-          <div class="provider-card">
+        grid.innerHTML = data.providers.map(p => {
+          const isPrimary = p.provider === data.primaryProvider;
+          return `
+          <div class="provider-card" style="${isPrimary ? 'border-color: var(--primary); box-shadow: 0 0 20px rgba(99,102,241,0.15);' : ''}">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <h3>${p.provider.toUpperCase()}</h3>
+              <h3>${p.provider.toUpperCase()} ${isPrimary ? '<span style="font-size: 0.75rem; color: var(--accent);">(Primary)</span>' : ''}</h3>
               <span class="provider-pill" style="${p.healthy ? '' : 'background: rgba(239,68,68,0.1); color: #f87171; border-color: rgba(239,68,68,0.3);'}">
                 <div class="status-dot" style="${p.healthy ? '' : 'background: #ef4444; box-shadow: 0 0 10px #ef4444;'}"></div>
                 ${p.healthy ? 'Healthy' : (p.configured ? 'Error / Degraded' : 'Not Configured')}
@@ -791,12 +800,14 @@
               <strong>Configured:</strong> ${p.configured ? 'Yes' : 'No'}<br>
               <strong>Failures:</strong> ${p.consecutiveFailures}
             </div>
-            ${p.lastError ? `<div style="font-size: 0.75rem; color: #fca5a5;">${p.lastError}</div>` : ''}
+            ${p.lastError ? `<div style="font-size: 0.75rem; color: #fca5a5; max-height: 80px; overflow-y: auto; background: rgba(239,68,68,0.05); padding: 6px; border-radius: 4px;">${p.lastError}</div>` : ''}
             <div style="display: flex; gap: 8px; margin-top: auto;">
-              <button class="btn btn-secondary" style="flex: 1; font-size: 0.8rem;" onclick="setPrimaryProvider('${p.provider}')">Set Primary</button>
+              <button class="btn ${isPrimary ? 'btn-primary' : 'btn-secondary'}" style="flex: 1; font-size: 0.8rem;" onclick="setPrimaryProvider('${p.provider}')">
+                ${isPrimary ? '⭐ Active Primary' : 'Set as Primary'}
+              </button>
             </div>
           </div>
-        `).join('');
+        `;}).join('');
       } catch (err) {
         console.error('Failed to load status:', err);
       }

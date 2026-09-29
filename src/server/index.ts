@@ -125,6 +125,7 @@ export function createServer() {
       status: 'online',
       version: '1.0.0',
       uptime: process.uptime(),
+      primaryProvider: modelGateway.getPrimaryProvider(),
       providers: modelGateway.getStatuses(),
       emailAccountsCount: emailManager.listAccounts().length,
       pendingApprovalsCount: approvalGate.listPending().length,

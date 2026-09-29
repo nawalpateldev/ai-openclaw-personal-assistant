@@ -53,6 +53,10 @@ export class ModelGateway {
     return Array.from(this.providerStats.values());
   }
 
+  getPrimaryProvider(): ModelProviderName {
+    return this.primaryProvider;
+  }
+
   setProviderEnabled(provider: ModelProviderName, enabled: boolean): void {
     const status = this.providerStats.get(provider);
     if (status) {

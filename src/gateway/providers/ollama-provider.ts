@@ -4,7 +4,7 @@ export class OllamaProvider {
   private baseUrl: string;
   private modelName: string;
 
-  constructor(baseUrl: string = 'http://127.0.0.1:11434', modelName: string = 'llama3.2') {
+  constructor(baseUrl: string = 'http://127.0.0.1:11434', modelName: string = 'qwen2.5:0.5b') {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.modelName = modelName;
   }
@@ -20,6 +20,24 @@ export class OllamaProvider {
     }
   }
 
+  /**
+   * Fetch list of locally installed models in Ollama
+   */
+  async getInstalledModels(): Promise<string[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/tags`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      if (res.ok) {
+        const data: any = await res.json();
+        if (Array.isArray(data.models)) {
+          return data.models.map((m: any) => m.name);
+        }
+      }
+    } catch {}
+    return [];
+  }
+
   async generate(
     messages: ModelMessage[],
     tools?: ToolDefinition[]
@@ -31,13 +49,21 @@ export class OllamaProvider {
       content: m.content,
     }));
 
+    // Auto-detect installed model if configured model is not available
+    let targetModel = this.modelName;
+    const installed = await this.getInstalledModels();
+    if (installed.length > 0 && !installed.includes(targetModel)) {
+      targetModel = installed[0];
+      this.modelName = targetModel;
+    }
+
     const response = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: this.modelName,
+        model: targetModel,
         messages: formattedMessages,
         stream: false,
       }),
@@ -55,7 +81,7 @@ export class OllamaProvider {
     return {
       content: data.message?.content || '',
       providerUsed: 'ollama',
-      modelUsed: this.modelName,
+      modelUsed: targetModel,
       tokensUsed: {
         promptTokens: data.prompt_eval_count,
         completionTokens: data.eval_count,
