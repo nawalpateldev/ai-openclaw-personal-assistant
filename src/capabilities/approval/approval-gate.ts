@@ -26,12 +26,22 @@ export class ApprovalGate {
     payload: any
   ): ApprovalRequest {
     const id = `apr_${crypto.randomBytes(4).toString('hex')}`;
+    
+    // Cryptographic content hash to ensure exact payload matching at approval time
+    const payloadHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(payload))
+      .digest('hex');
+
     const approval: ApprovalRequest = {
       id,
       actionType,
       title,
       description,
-      payload,
+      payload: {
+        ...payload,
+        _contentHash: payloadHash,
+      },
       status: 'pending',
       requestedAt: new Date().toISOString(),
     };
