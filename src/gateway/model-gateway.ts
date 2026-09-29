@@ -75,23 +75,41 @@ export class ModelGateway {
   }
 
   /**
-   * Resilient generation with automatic rate-limit and error fallback cascade
+   * Resilient generation with automatic rate-limit and error fallback cascade.
+   * If preferredProvider is specified, it is placed at the front of the cascade.
+   * If it fails, the gateway continues to remaining providers and flags fallbackOccurred.
    */
   async generate(
     messages: ModelMessage[],
-    tools?: ToolDefinition[]
+    tools?: ToolDefinition[],
+    preferredProvider?: ModelProviderName
   ): Promise<ModelResponse> {
     const errors: { provider: string; error: string }[] = [];
 
+    // Build the prioritized chain for this generation
+    let activeChain = [...this.fallbackChain];
+    if (preferredProvider && this.providerStats.has(preferredProvider)) {
+      activeChain = [
+        preferredProvider,
+        ...this.fallbackChain.filter((p) => p !== preferredProvider),
+      ];
+    }
+
     // Attempt generation through ordered fallback chain
-    for (const providerName of this.fallbackChain) {
+    for (const providerName of activeChain) {
       const status = this.providerStats.get(providerName);
       if (!status || !status.enabled || !status.configured) {
+        if (providerName === preferredProvider) {
+          errors.push({
+            provider: providerName,
+            error: !status?.configured ? 'Provider is not configured (missing API credentials)' : 'Provider is currently disabled',
+          });
+        }
         continue;
       }
 
-      // If circuit breaker tripped (>3 consecutive errors), skip unless it's the last fallback
-      if (status.consecutiveFailures >= 3 && providerName !== 'ollama') {
+      // If circuit breaker tripped (>3 consecutive errors), skip unless it's explicitly requested or the last fallback
+      if (status.consecutiveFailures >= 3 && providerName !== preferredProvider && providerName !== 'ollama') {
         continue;
       }
 
@@ -120,7 +138,14 @@ export class ModelGateway {
         status.healthy = true;
         status.lastError = undefined;
 
-        return response;
+        const fallbackOccurred = Boolean(preferredProvider && response.providerUsed !== preferredProvider);
+
+        return {
+          ...response,
+          fallbackOccurred,
+          requestedProvider: preferredProvider,
+          failedProviders: errors.length > 0 ? errors : undefined,
+        };
       } catch (err: any) {
         const errorMessage = err?.message || String(err);
         status.consecutiveFailures += 1;

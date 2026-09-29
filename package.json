@@ -13,7 +13,8 @@
     "test:gateway": "tsx tests/test-gateway.ts",
     "test:agent": "tsx tests/test-agent.ts",
     "test:email": "tsx tests/test-email.ts",
-    "test:telegram": "tsx tests/test-telegram.ts"
+    "test:telegram": "tsx tests/test-telegram.ts",
+    "test:selector": "tsx tests/test-model-selector.ts"
   },
   "keywords": [
     "ai",

@@ -49,6 +49,9 @@ export interface ModelResponse {
     totalTokens?: number;
   };
   latencyMs: number;
+  fallbackOccurred?: boolean;
+  requestedProvider?: ModelProviderName;
+  failedProviders?: { provider: string; error: string }[];
 }
 
 // -----------------------------------------------------------------------------
@@ -174,4 +177,7 @@ export interface AgentRunResult {
   modelUsed: string;
   stepsCount: number;
   approvalRequired?: ApprovalRequest;
+  fallbackOccurred?: boolean;
+  requestedProvider?: ModelProviderName;
+  fallbackNotice?: string;
 }

@@ -105,7 +105,8 @@ export class AgentRuntime {
   async run(
     userMessage: string,
     history: ModelMessage[] = [],
-    conversationId: string = 'default'
+    conversationId: string = 'default',
+    preferredProvider?: import('../types/index.js').ModelProviderName
   ): Promise<AgentRunResult> {
     const runId = `run_${Date.now()}`;
     const tools = this.getToolDefinitions();
@@ -128,11 +129,29 @@ CRITICAL SECURITY & OPERATIONAL PRINCIPLES:
       { role: 'user', content: userMessage },
     ];
 
-    // Query model gateway
-    const modelResponse = await this.gateway.generate(messages, tools);
+    // Query model gateway with preferred provider
+    const modelResponse = await this.gateway.generate(messages, tools, preferredProvider);
 
     let finalResponse = modelResponse.content;
     let approvalRequest = undefined;
+    let fallbackNotice: string | undefined = undefined;
+
+    // If a specific provider was requested and a fallback occurred, notify the user
+    if (modelResponse.fallbackOccurred && preferredProvider) {
+      const formatName = (p: string) => {
+        if (p === 'gemini') return 'Google Gemini';
+        if (p === 'ollama') return 'Local Ollama';
+        if (p === 'openai') return 'OpenAI';
+        if (p === 'anthropic') return 'Anthropic Claude';
+        return p;
+      };
+
+      const requestedLabel = formatName(preferredProvider);
+      const fallbackLabel = formatName(modelResponse.providerUsed);
+
+      fallbackNotice = `⚠️ *Notice: Primary LLM (${requestedLabel}) is currently not available. Responded using fallback LLM (${fallbackLabel} - \`${modelResponse.modelUsed}\`).*`;
+      finalResponse = `${fallbackNotice}\n\n${finalResponse}`;
+    }
 
     // Check if user specifically asked about telegram status/check
     if (/check\s+telegram|telegram\s+status|telegram\s+bot/i.test(userMessage)) {
@@ -177,6 +196,9 @@ CRITICAL SECURITY & OPERATIONAL PRINCIPLES:
       modelUsed: modelResponse.modelUsed,
       stepsCount: 1,
       approvalRequired: approvalRequest,
+      fallbackOccurred: modelResponse.fallbackOccurred,
+      requestedProvider: preferredProvider,
+      fallbackNotice,
     };
   }
 }

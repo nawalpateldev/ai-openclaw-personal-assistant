@@ -194,11 +194,16 @@ export function createServer() {
   // Chat with Agent
   app.post('/api/agent/chat', requireAuth, async (req, res) => {
     try {
-      const { message, conversationId } = req.body;
+      const { message, conversationId, preferredProvider } = req.body;
       if (!message) {
         return res.status(400).json({ error: 'Message is required' });
       }
-      const result = await agentRuntime.run(message, [], conversationId || 'dashboard');
+      const result = await agentRuntime.run(
+        message,
+        [],
+        conversationId || 'dashboard',
+        preferredProvider && preferredProvider !== 'auto' ? preferredProvider : undefined
+      );
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err.message || 'Agent execution failed' });

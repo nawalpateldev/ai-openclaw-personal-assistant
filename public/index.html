@@ -316,9 +316,72 @@
     /* Chat View */
     .chat-container {
       display: grid;
-      grid-template-rows: 1fr auto;
+      grid-template-rows: auto 1fr auto;
       height: calc(100vh - 200px);
-      gap: 16px;
+      gap: 0;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+    .chat-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(13, 16, 23, 0.7);
+      backdrop-filter: blur(12px);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .chat-header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .chat-model-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .chat-model-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .chat-model-select {
+      background: rgba(18, 24, 38, 0.95);
+      border: 1px solid var(--border-subtle);
+      color: #fff;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .chat-model-select:focus, .chat-model-select:hover {
+      border-color: var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+    .fallback-alert-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      animation: pulse-slow 2s infinite ease-in-out;
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
     }
     .chat-messages {
       overflow-y: auto;
@@ -549,10 +612,29 @@
       <!-- 1. AI Chat Tab -->
       <section id="tab-chat" class="tab-pane active">
         <div class="chat-container glass">
+          <!-- Chat Header with Model Selector -->
+          <div class="chat-header-bar">
+            <div class="chat-header-title">
+              <span class="pulse-indicator"></span>
+              <span>OpenClaw Executive Assistant</span>
+              <span class="badge badge-success" id="active-model-pill" style="font-size: 0.72rem;">Resilient Gateway Active</span>
+            </div>
+            <div class="chat-model-controls">
+              <label for="chat-model-selector" class="chat-model-label">🎯 Primary LLM:</label>
+              <select id="chat-model-selector" class="chat-model-select" title="Choose preferred primary LLM model. If unavailable, OpenClaw automatically fails over and alerts you.">
+                <option value="auto">⚡ Auto (Gemini ➔ Ollama Fallback)</option>
+                <option value="ollama">🦙 Local Ollama (qwen2.5:0.5b - Fast / Offline)</option>
+                <option value="gemini">✨ Google Gemini (Flash / High Reasoning)</option>
+                <option value="openai">🤖 OpenAI (GPT-4o Mini)</option>
+                <option value="anthropic">🧠 Anthropic Claude (3.5 Sonnet)</option>
+              </select>
+            </div>
+          </div>
+
           <div class="chat-messages" id="chat-messages-container">
             <div class="message-card msg-assistant">
               <strong>OpenClaw Assistant</strong><br>
-              Hello! I am OpenClaw. I have connected to your resilient multi-model gateway, dynamic multi-account email manager, and calendar. How can I assist you with personal or business automation today?
+              Hello! I am OpenClaw. You can interact with me using your preferred primary LLM model selected above. If a cloud model experiences demand spikes or quota limits, my resilient gateway automatically fails over to keep your workflow uninterrupted.
               <div class="msg-meta">
                 <span>🟢 Protected Session</span>
                 <span>•</span>
@@ -975,15 +1057,28 @@
       }
     }
 
-    // Chat
+    // Chat & Model Selector
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input-text');
     const chatMessagesContainer = document.getElementById('chat-messages-container');
+    const chatModelSelector = document.getElementById('chat-model-selector');
+
+    // Restore saved model preference
+    const savedModelPref = localStorage.getItem('openclaw_chat_model_pref');
+    if (savedModelPref && chatModelSelector) {
+      chatModelSelector.value = savedModelPref;
+    }
+    if (chatModelSelector) {
+      chatModelSelector.addEventListener('change', () => {
+        localStorage.setItem('openclaw_chat_model_pref', chatModelSelector.value);
+      });
+    }
 
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = chatInput.value.trim();
       if (!text) return;
+      const preferredProvider = chatModelSelector ? chatModelSelector.value : 'auto';
 
       // Add user message to UI
       const userCard = document.createElement('div');
@@ -996,7 +1091,8 @@
       // Add thinking placeholder
       const assistantCard = document.createElement('div');
       assistantCard.className = 'message-card msg-assistant';
-      assistantCard.innerHTML = '<em>OpenClaw is thinking...</em>';
+      const modelLabel = preferredProvider !== 'auto' ? preferredProvider.toUpperCase() : 'Auto Cascade';
+      assistantCard.innerHTML = `<em>OpenClaw is thinking (${modelLabel})...</em>`;
       chatMessagesContainer.appendChild(assistantCard);
       chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 
@@ -1004,20 +1100,32 @@
         const res = await apiFetch('/api/agent/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
+          body: JSON.stringify({ message: text, preferredProvider })
         });
         const data = await res.json();
         if (!res.ok || data.error) {
           throw new Error(data.error || 'Server error running agent');
         }
         const respText = data.response || '(No response received from agent)';
+
+        let metaHtml = `
+          <span>Provider: ${(data.providerUsed || 'AI').toUpperCase()}</span>
+          <span>•</span>
+          <span>Model: ${data.modelUsed || 'default'}</span>
+        `;
+
+        if (data.fallbackOccurred) {
+          metaHtml += `
+            <span>•</span>
+            <span class="fallback-alert-badge">⚠️ Fallback from ${(data.requestedProvider || 'Primary').toUpperCase()}</span>
+          `;
+        }
+
         assistantCard.innerHTML = `
           <strong>OpenClaw Assistant</strong><br>
           ${respText.replace(/\n/g, '<br>')}
           <div class="msg-meta">
-            <span>Provider: ${(data.providerUsed || 'AI').toUpperCase()}</span>
-            <span>•</span>
-            <span>Model: ${data.modelUsed || 'default'}</span>
+            ${metaHtml}
           </div>
         `;
         if (data.approvalRequired) {
