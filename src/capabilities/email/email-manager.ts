@@ -6,6 +6,9 @@ import { simpleParser } from 'mailparser';
 import { EmailAccountConfig, EmailDetail, EmailSummary, SendEmailPayload } from '../../types/index.js';
 import { config } from '../../config/env.js';
 
+// Ensure Node TLS allows local root CA / antivirus SSL inspection proxies
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 export class EmailManager {
   private accountsFile: string;
   private accounts: Map<string, EmailAccountConfig> = new Map();
@@ -135,7 +138,11 @@ export class EmailManager {
           host: account.imapHost,
           port: account.imapPort,
           tls: account.secure,
-          authTimeout: 5000,
+          tlsOptions: {
+            rejectUnauthorized: false,
+            servername: account.imapHost,
+          },
+          authTimeout: 10000,
         },
       };
       const connection = await imaps.connect(imapConfig);
@@ -154,6 +161,9 @@ export class EmailManager {
         auth: {
           user: account.email,
           pass: account.appPassword,
+        },
+        tls: {
+          rejectUnauthorized: false,
         },
       });
       await transporter.verify();
@@ -192,7 +202,11 @@ export class EmailManager {
         host: account.imapHost,
         port: account.imapPort,
         tls: account.secure,
-        authTimeout: 10000,
+        tlsOptions: {
+          rejectUnauthorized: false,
+          servername: account.imapHost,
+        },
+        authTimeout: 15000,
       },
     };
 
@@ -258,7 +272,11 @@ export class EmailManager {
         host: account.imapHost,
         port: account.imapPort,
         tls: account.secure,
-        authTimeout: 10000,
+        tlsOptions: {
+          rejectUnauthorized: false,
+          servername: account.imapHost,
+        },
+        authTimeout: 15000,
       },
     };
 
@@ -322,6 +340,9 @@ export class EmailManager {
       auth: {
         user: account.email,
         pass: account.appPassword,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
 
