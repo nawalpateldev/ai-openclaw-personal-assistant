@@ -25,6 +25,15 @@ async function runEmailTest() {
     try {
       const testResult = await emailManager.testConnection(account.id);
       console.log('Connection Result:', testResult);
+
+      if (testResult.imap) {
+        console.log(`\nFetching recent emails from '${account.id}' inbox...`);
+        const emails = await emailManager.fetchRecentEmails(account.id, 5);
+        console.log(`Successfully retrieved ${emails.length} email(s):`);
+        emails.forEach((e, idx) => {
+          console.log(`  [${idx + 1}] UID ${e.uid} | From: ${e.from} | Subject: "${e.subject}" | Date: ${new Date(e.date).toLocaleString()}`);
+        });
+      }
     } catch (err: any) {
       console.error('Connection Test Error:', err.message);
     }

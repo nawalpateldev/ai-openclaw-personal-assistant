@@ -38,6 +38,25 @@ async function runAgentTest() {
   } catch (err: any) {
     console.error('Test 2 Failed:', err.message);
   }
+
+  // Test 3: Check Personal Inbox
+  console.log('\n[Test 3] Prompt: "can you check my personal inbox"');
+  try {
+    const res3 = await runtime.run('can you check my personal inbox');
+    console.log('Provider:', res3.providerUsed);
+    console.log('Response:\n', res3.response);
+  } catch (err: any) {
+    console.error('Test 3 Failed:', err.message);
+  }
+
+  // Test 5: Read Specific Email Content
+  console.log('\n[Test 5] Prompt: "read email 7943"');
+  try {
+    const res5 = await runtime.run('read email 7943');
+    console.log('Response:\n', res5.response.substring(0, 300) + '...');
+  } catch (err: any) {
+    console.error('Test 5 Failed:', err.message);
+  }
 }
 
 runAgentTest();

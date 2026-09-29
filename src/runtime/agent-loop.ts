@@ -102,6 +102,69 @@ export class AgentRuntime {
     ];
   }
 
+  /**
+   * Autonomous Email Execution Engine: Directly syncs and fetches live emails
+   */
+  private async executeEmailCheck(userMessage: string): Promise<string | null> {
+    const isCheckInbox = /(?:check|fetch|get|show|read|list|any\s+new)\s+(?:my\s+)?(?:recent\s+)?(?:personal\s+|business\s+)?(?:inbox|email|emails|mail)/i.test(userMessage)
+      || /(?:what\s+emails|do\s+i\s+have\s+any\s+emails|check\s+inbox|check\s+email)/i.test(userMessage);
+
+    const isReadSpecific = userMessage.match(/(?:read|open|view|show|fetch)\s+email\s+(?:uid\s+|#)?(\d+)/i);
+    const isListAccounts = /(?:list|show|check)\s+(?:all\s+)?(?:email\s+)?(?:accounts|inboxes)/i.test(userMessage);
+
+    if (isListAccounts) {
+      const accounts = this.emailManager.listAccounts();
+      if (accounts.length === 0) {
+        return '📬 **Email Accounts**: No email accounts configured yet. Add them in `config/email-accounts.json` or via the Web Dashboard.';
+      }
+      return `📬 **Configured Email Inboxes (${accounts.length})**:\n` +
+        accounts.map(a => `• **${a.name}** (\`${a.id}\`) - \`${a.email || 'No email'}\` | Enabled: ${a.enabled ? '🟢 Yes' : '⚪ No'}`).join('\n');
+    }
+
+    if (isReadSpecific) {
+      const uid = parseInt(isReadSpecific[1], 10);
+      const targetAccount = /business/i.test(userMessage) ? 'business' : 'personal';
+      try {
+        const detail = await this.emailManager.readEmail(targetAccount, uid);
+        return `📨 **Email Details (UID: ${detail.uid})**\n` +
+          `• **Subject**: ${detail.subject}\n` +
+          `• **From**: ${detail.from}\n` +
+          `• **Date**: ${new Date(detail.date).toLocaleString()}\n\n` +
+          `**Message Body**:\n${detail.bodyText || detail.snippet || '(No body text)'}\n\n` +
+          `💡 *Need to reply? Say "send email to ${detail.from} saying..." to stage a draft for review.*`;
+      } catch (err: any) {
+        return `⚠️ Could not read email UID ${uid}: ${err.message}`;
+      }
+    }
+
+    if (isCheckInbox) {
+      const targetAccount = /business/i.test(userMessage) ? 'business' : 'personal';
+      const account = this.emailManager.getAccount(targetAccount);
+      if (!account || !account.email || !account.appPassword) {
+        return `⚠️ **Inbox Not Configured**: Account \`${targetAccount}\` does not have an email address or app password configured yet. Please update \`config/email-accounts.json\` or configure it on the Web Dashboard.`;
+      }
+
+      try {
+        const emails = await this.emailManager.fetchRecentEmails(targetAccount, 5);
+        if (emails.length === 0) {
+          return `📭 **Inbox Empty**: Checked \`${account.name}\` (${account.email}). No recent messages found.`;
+        }
+
+        const emailLines = emails.map((e, idx) => 
+          `[${idx + 1}] **${e.subject}**\n   • **From**: \`${e.from}\`\n   • **Date**: ${new Date(e.date).toLocaleString()}\n   • **Status**: ${e.unread ? '🔵 Unread' : '⚪ Read'} | UID: \`${e.uid}\``
+        ).join('\n\n');
+
+        return `📬 **Inbox Sync: ${account.name}** (\`${account.email}\`)\n` +
+          `Retrieved ${emails.length} recent message(s):\n\n${emailLines}\n\n` +
+          `💡 *Tip: To read full content of any message, say "read email <UID>". To stage a reply, say "send email to <address> saying <message>".*`;
+      } catch (err: any) {
+        return `⚠️ **Inbox Sync Error**: Failed to fetch emails from \`${targetAccount}\` (${account.email}): ${err.message}`;
+      }
+    }
+
+    return null;
+  }
+
   async run(
     userMessage: string,
     history: ModelMessage[] = [],
@@ -110,6 +173,19 @@ export class AgentRuntime {
   ): Promise<AgentRunResult> {
     const runId = `run_${Date.now()}`;
     const tools = this.getToolDefinitions();
+
+    // Check if user is asking to check email, list accounts, or read an email
+    const emailResult = await this.executeEmailCheck(userMessage);
+    if (emailResult) {
+      return {
+        runId,
+        conversationId,
+        response: emailResult,
+        providerUsed: preferredProvider || 'gemini',
+        modelUsed: 'openclaw-email-engine',
+        stepsCount: 1,
+      };
+    }
 
     const systemPrompt: ModelMessage = {
       role: 'system',
