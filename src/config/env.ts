@@ -15,6 +15,7 @@ export const config = {
   maxLoginAttempts: parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10),
   lockoutMinutes: parseInt(process.env.LOCKOUT_MINUTES || '15', 10),
   captchaDifficulty: (process.env.CAPTCHA_DIFFICULTY || 'medium') as 'easy' | 'medium' | 'hard',
+  disableAuth: process.env.DISABLE_AUTH === 'true',
 
   // Models
   models: {

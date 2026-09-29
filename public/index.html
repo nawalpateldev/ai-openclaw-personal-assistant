@@ -677,7 +677,12 @@
         const res = await fetch('/api/auth/me', {
           headers: currentAuthToken ? { 'Authorization': `Bearer ${currentAuthToken}` } : {}
         });
-        if (res.ok) {
+        const data = await res.json();
+        if (res.ok && (data.authenticated || data.authDisabled)) {
+          if (data.token) {
+            currentAuthToken = data.token;
+            localStorage.setItem('openclaw_token', data.token);
+          }
           showDashboard();
         } else {
           showLogin();

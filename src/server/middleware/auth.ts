@@ -21,6 +21,11 @@ export function generateToken(username: string = 'admin'): string {
 }
 
 export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  if (config.disableAuth) {
+    req.user = { username: 'admin', role: 'admin' };
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
   let token: string | undefined;
 

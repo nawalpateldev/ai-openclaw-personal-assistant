@@ -63,44 +63,61 @@ export function createServer() {
   });
 
   // 2. Login with Password, Lockout & CAPTCHA validation
-  app.post('/api/auth/login', loginSecurity.middleware, async (req, res) => {
-    const { password, captchaId, captchaAnswer } = req.body;
-    const clientIp = req.socket.remoteAddress || '127.0.0.1';
-
-    // Verify Captcha
-    if (!CaptchaService.verify(captchaId, captchaAnswer)) {
-      loginSecurity.recordFailure(clientIp);
-      return res.status(400).json({
-        error: 'Invalid CAPTCHA',
-        message: 'The CAPTCHA answer is incorrect or has expired. Please try again.',
+  app.post('/api/auth/login', async (req, res, next) => {
+    if (config.disableAuth) {
+      const token = generateToken('admin');
+      res.cookie('openclaw_token', token, {
+        httpOnly: true,
+        secure: config.nodeEnv === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      return res.json({
+        success: true,
+        token,
+        user: { username: 'admin', role: 'admin' },
       });
     }
 
-    // Verify Password (constant-time equivalent / direct match against configured master password)
-    if (password !== config.dashboardPassword) {
-      const rec = loginSecurity.recordFailure(clientIp);
-      return res.status(401).json({
-        error: 'Invalid Credentials',
-        message: 'Incorrect dashboard password.',
-        remainingAttempts: Math.max(0, config.maxLoginAttempts - rec.failedCount),
+    loginSecurity.middleware(req, res, async () => {
+      const { password, captchaId, captchaAnswer } = req.body;
+      const clientIp = req.socket.remoteAddress || '127.0.0.1';
+
+      // Verify Captcha
+      if (!CaptchaService.verify(captchaId, captchaAnswer)) {
+        loginSecurity.recordFailure(clientIp);
+        return res.status(400).json({
+          error: 'Invalid CAPTCHA',
+          message: 'The CAPTCHA answer is incorrect or has expired. Please try again.',
+        });
+      }
+
+      // Verify Password (constant-time equivalent / direct match against configured master password)
+      if (password !== config.dashboardPassword) {
+        const rec = loginSecurity.recordFailure(clientIp);
+        return res.status(401).json({
+          error: 'Invalid Credentials',
+          message: 'Incorrect dashboard password.',
+          remainingAttempts: Math.max(0, config.maxLoginAttempts - rec.failedCount),
+        });
+      }
+
+      // Login Success: Reset failed attempts and issue signed JWT
+      loginSecurity.recordSuccess(clientIp);
+      const token = generateToken('admin');
+
+      res.cookie('openclaw_token', token, {
+        httpOnly: true,
+        secure: config.nodeEnv === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-    }
 
-    // Login Success: Reset failed attempts and issue signed JWT
-    loginSecurity.recordSuccess(clientIp);
-    const token = generateToken('admin');
-
-    res.cookie('openclaw_token', token, {
-      httpOnly: true,
-      secure: config.nodeEnv === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.json({
-      success: true,
-      token,
-      user: { username: 'admin', role: 'admin' },
+      res.json({
+        success: true,
+        token,
+        user: { username: 'admin', role: 'admin' },
+      });
     });
   });
 
@@ -111,8 +128,25 @@ export function createServer() {
   });
 
   // 4. Session Verification
-  app.get('/api/auth/me', requireAuth, (req: AuthenticatedRequest, res) => {
-    res.json({ authenticated: true, user: req.user });
+  app.get('/api/auth/me', (req: AuthenticatedRequest, res) => {
+    if (config.disableAuth) {
+      const token = generateToken('admin');
+      res.cookie('openclaw_token', token, {
+        httpOnly: true,
+        secure: config.nodeEnv === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      return res.json({
+        authenticated: true,
+        user: { username: 'admin', role: 'admin' },
+        authDisabled: true,
+        token,
+      });
+    }
+    requireAuth(req, res, () => {
+      res.json({ authenticated: true, user: req.user, authDisabled: false });
+    });
   });
 
   // ---------------------------------------------------------------------------
